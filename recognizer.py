@@ -1,7 +1,34 @@
-from pydub import AudioSegment 
+import torch
+from transformers import AutoModelForSpeechSeq2Seq, AutoProcessor, pipeline
+from datasets import load_dataset
 
-try:
-    sound = AudioSegment.from_file("recordings/Recording.m4a", format="m4a")
-    sound.export("recordings/Output.mp3" ,format="mp3")
-except FileNotFoundError:
-    print("Error: Recording.m4a not found. Please check the filename and its location.")
+
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+
+model_id = "openai/whisper-large-v3"
+
+model = AutoModelForSpeechSeq2Seq.from_pretrained(
+    model_id, torch_dtype=torch_dtype, low_cpu_mem_usage=True, use_safetensors=True
+)
+model.to(device)
+
+processor = AutoProcessor.from_pretrained(model_id)
+
+pipe = pipeline(
+    "automatic-speech-recognition",
+    model=model,
+    tokenizer=processor.tokenizer,
+    feature_extractor=processor.feature_extractor,
+    max_new_tokens=128,
+    chunk_length_s=30,
+    batch_size=16,
+    return_timestamps=True,
+    torch_dtype=torch_dtype,
+    device=device,
+)
+
+
+
+result = pipe("recordings/Output.mp3")
+print(result["text"])
