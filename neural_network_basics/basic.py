@@ -1,3 +1,4 @@
+#simple method to find the activation of output neurons. 
 
 weights = [[1,2],[4,1],[4,2]]
 biases = [2,3,5]
